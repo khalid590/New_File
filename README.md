@@ -1,53 +1,156 @@
 # LRU Cache Implementation
 
 ## Overview
---> This project implements a Least Recently Used (LRU) Cache using JavaScript. The cache supports get() and put() operations and removes the least recently used item when the cache reaches its capacity.
-I also added optional TTL (Time-To-Live) support as a bonus feature. A key can be given an expiration time, after which get() returns -1 and removes the expired entry.
+
+This project implements a Least Recently Used (LRU) Cache using JavaScript.
+
+The cache supports:
+
+* `get(key)`
+* `put(key, value)`
+* LRU-based eviction when the cache reaches its capacity
+
+I also implemented optional **TTL (Time-To-Live)** support as a bonus feature. A cache entry can be given an expiration time in milliseconds. After the TTL expires, `get()` returns `-1` and removes the expired entry.
+
+---
 
 ## Data Structures Used
---> I used two main data structures:
 
-Map — Stores each cache key and its corresponding linked-list node. This allows me to find a key quickly.
-Doubly Linked List — Keeps track of the order in which cache items are used.
-I used a doubly linked list because a node can be removed or moved to the front in constant time when both prev and next references are available.
-The cache uses two dummy nodes, head and tail, to make insertion and removal easier. The node immediately after head is the most recently used item, while the node immediately before tail is the least recently used item.
+I used two main data structures:
+
+### 1. Map
+
+The `Map` stores each cache key and its corresponding linked-list node.
+
+This allows the cache to find an existing key quickly without searching through all the entries.
+
+### 2. Doubly Linked List
+
+The doubly linked list maintains the order of recently used cache entries.
+
+Each node contains:
+
+* `key`
+* `value`
+* `expiryTime`
+* `prev`
+* `next`
+
+I used a doubly linked list because a node can be removed or moved to the front in **O(1)** time when both `prev` and `next` references are available.
+
+The implementation also uses two dummy nodes:
+
+* `head`
+* `tail`
+
+The node immediately after `head` is the **Most Recently Used (MRU)** item, while the node immediately before `tail` is the **Least Recently Used (LRU)** item.
+
+---
 
 ## How LRU Ordering Is Maintained
---> Whenever a new item is added, it is placed immediately after the head, making it the most recently used item.
-When an existing item is accessed using get(), that node is removed from its current position and moved to the front of the linked list.
-The same happens when an existing key is updated using put().
+
+Whenever a new item is added, it is placed immediately after the `head`, making it the most recently used item.
+
+When an existing item is accessed using `get()`, the node is removed from its current position and moved to the front of the linked list.
+
+The same happens when an existing key is updated using `put()`.
+
 For example, with a cache capacity of 2:
-put("A", 10)
-put("B", 20)
+
+```text
 HEAD → B → A → TAIL
-        MRU   LRU
-If get("A") is called, the order becomes:
+       MRU   LRU
+```
+
+If `get("A")` is called, `A` becomes the most recently used item:
+
+```text
 HEAD → A → B → TAIL
-        MRU   LRU
-If a new item C is then added, B is the least recently used item, so it is removed.
+       MRU   LRU
+```
+
+If a new item `C` is then added, the cache is already at capacity. Therefore, `B`, which is currently the least recently used item, is removed.
+
+The resulting order is:
+
+```text
+HEAD → C → A → TAIL
+       MRU   LRU
+```
+
+---
 
 ## Time Complexity
---> The average time complexity is:
-get() → O(1)
-put() → O(1)
-The Map provides average O(1) lookup, while the doubly linked list allows nodes to be removed and moved to the front in O(1) time
+
+The average time complexity of the main cache operations is:
+
+| Operation | Average Time Complexity |
+| --------- | ----------------------- |
+| `get()`   | O(1)                    |
+| `put()`   | O(1)                    |
+
+The `Map` provides average **O(1)** lookup, while the doubly linked list allows nodes to be removed and moved to the front in **O(1)** time.
+
+Therefore, both `get()` and `put()` run in O(1) average time as required.
+
+---
 
 ## Space Complexity
--->The space complexity is O(capacity) because the cache stores at most the specified number of entries.
-Each entry contains a key, value, expiration information, and links to the previous and next nodes.
+
+The space complexity is **O(capacity)**.
+
+The cache stores at most the specified number of entries. Each entry contains its key, value, expiration information, and the links required by the doubly linked list.
+
+The `Map` and linked list together therefore require space proportional to the cache capacity.
+
+---
 
 ## TTL Support
---> As an optional bonus, I added TTL support to the cache.
-The put() method can receive a TTL value in milliseconds. The expiration time is stored with the cache node.
+
+As an optional bonus feature, I added TTL (Time-To-Live) support.
+
+The `put()` method accepts an optional TTL value in milliseconds.
+
 For example:
-cache.put("tempKey", "activeValue", 1000);
-This keeps the item available for approximately 1 second. After the TTL expires, calling get("tempKey") returns -1 and removes the expired item.
-One limitation of my TTL implementation is that expired entries are cleaned up when they are accessed through get(). There is no separate background process that continuously removes expired entries.
+
+```javascript
+ttlCache.put("tempKey", "activeValue", 1000);
+```
+
+This gives the cache entry a TTL of approximately 1 second.
+
+If the key is accessed before the TTL expires:
+
+```text
+get("tempKey") immediately -> activeValue
+```
+
+After the TTL expires:
+
+```text
+get("tempKey") after TTL -> -1
+```
+
+The expired entry is also removed from the cache when it is detected by `get()`.
+
+### TTL Limitation
+
+One limitation of this implementation is that expired entries are cleaned up when they are accessed through `get()`.
+
+There is no separate background process that continuously checks and removes expired entries.
+
+This keeps the implementation simple and avoids an additional background timer or cleanup mechanism.
+
+---
 
 ## Example Output
---> I ran the implementation directly in the terminal. The following output demonstrates the standard LRU flow and the optional TTL feature:
 
-1. Standard LRU Cache Flow ===
+The following output is generated by running the actual implementation in the terminal.
+
+### Standard LRU Cache Flow
+
+```text
+=== 1. Standard LRU Cache Flow ===
 put("A", 10)
 put("B", 20)
 get("A") -> 10
@@ -55,16 +158,64 @@ put("C", 30)
 get("B") -> -1
 get("C") -> 30
 get("A") -> 10
+```
 
-2. Optional Bonus: TTL Support ===
+The result:
+
+```text
+get("B") -> -1
+```
+
+shows that `B` was evicted when `C` was inserted because `B` was the least recently used entry at that point.
+
+### Optional TTL Support
+
+```text
+=== 2. Optional Bonus: TTL Support ===
 put("tempKey", "activeValue", 1000ms)
 get("tempKey") immediately -> activeValue
 Waiting 1.2 seconds...
 get("tempKey") after TTL -> -1
+```
 
-The get("B") -> -1 result shows that B was removed when the cache exceeded its capacity because it was the least recently used entry.
+This demonstrates that the entry is available before its TTL expires and returns `-1` after the expiration time.
+
+---
 
 ## How to Run
---> Open a terminal in the project directory and run:
+
+### Prerequisites
+
+Make sure **Node.js** is installed on your computer.
+
+### Run the program
+
+Clone the repository or download the project, then open a terminal in the project directory.
+
+Run:
+
+```bash
 node main.js
-The program will execute the LRU cache example and the optional TTL example and print the results in the terminal.
+```
+
+The program will execute both:
+
+1. The standard LRU Cache example
+2. The optional TTL example
+
+The results will be printed directly to the terminal.
+
+---
+
+## Project Structure
+
+```text
+New_File/
+│
+├── main.js
+└── README.md
+```
+
+`main.js` contains the LRU Cache implementation and the demonstration code.
+
+`README.md` explains the implementation, data structures, complexity, TTL support, example output, and how to run the program.
