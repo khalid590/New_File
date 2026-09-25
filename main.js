@@ -78,10 +78,6 @@ class LRUCache {
   }
 }
 
-// ==========================================
-// THIS PART PRINTS THE OUTPUT TO TERMINAL:
-// ==========================================
-
 async function runDemo() {
   console.log("=== 1. Standard LRU Cache Flow ===");
   const cache = new LRUCache(2);
@@ -114,5 +110,5 @@ async function runDemo() {
   console.log('get("tempKey") after TTL ->', ttlCache.get("tempKey"));
 }
 
-// EXECUTING THE DEMO FUNCTION:
+// executing the demo fucntion:
 runDemo();
